@@ -12,12 +12,14 @@ import (
 )
 
 // DisplayServices displays the specified services
-func DisplayServices(services catalog.ServiceTypeList) {
+//func DisplayServices(services catalog.ServiceTypeList) {
+func DisplayServices(services []catalog.ServiceType) {
 	w := tabwriter.NewWriter(os.Stdout, 5, 2, 3, ' ', tabwriter.TabIndent)
 	log.Info("Services available through Service Catalog")
 	fmt.Fprintln(w, "NAME", "\t", "PLANS")
-	for _, service := range services.Items {
-		fmt.Fprintln(w, service.ObjectMeta.Name, "\t", strings.Join(service.Spec.PlanList, ","))
+	//for _, service := range services.Items {
+	for _, service := range services {
+			fmt.Fprintln(w, service.ObjectMeta.Name, "\t", strings.Join(service.Spec.PlanList, ","))
 	}
 	w.Flush()
 }
@@ -33,21 +35,16 @@ func DisplayComponents(components []string) {
 }
 
 // FilterHiddenServices filters out services that should be hidden from the specified list
-func FilterHiddenServices(input catalog.ServiceTypeList) catalog.ServiceTypeList {
-	inputLength := len(input.Items)
+func FilterHiddenServices(input []catalog.ServiceType) []catalog.ServiceType {
+	inputLength := len(input)
 	filteredServices := make([]catalog.ServiceType, 0, inputLength)
 
-	for _, service := range input.Items {
+	for _, service := range input {
 		if !service.Spec.Hidden {
 			filteredServices = append(filteredServices, service)
 		}
 	}
-
-	return catalog.ServiceTypeList{
-		TypeMeta:   input.TypeMeta,
-		ObjectMeta: input.ObjectMeta,
-		Items:      filteredServices,
-	}
+	return filteredServices
 }
 
 // FilterHiddenComponents filters out components that should be hidden from the specified list

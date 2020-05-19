@@ -3,6 +3,7 @@ package list
 import (
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -15,6 +16,7 @@ import (
 	"github.com/openshift/odo/pkg/odo/util/experimental"
 	"github.com/openshift/odo/pkg/odo/util/pushtarget"
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 )
 
@@ -28,7 +30,9 @@ type ListComponentsOptions struct {
 	// display both supported and unsupported devfile components
 	listAllDevfileComponents bool
 	// list of known images
-	catalogList catalog.ComponentTypeList
+//	catalogList catalog.ComponentTypeList
+	catalogList []catalog.ComponentType
+
 	// list of known devfiles
 	catalogDevfileList catalog.DevfileComponentTypeList
 	// generic context options common to all commands
@@ -53,7 +57,8 @@ func (o *ListComponentsOptions) Complete(name string, cmd *cobra.Command, args [
 			}
 		}
 
-		o.catalogList.Items = util.FilterHiddenComponents(o.catalogList.Items)
+//		o.catalogList.Items = util.FilterHiddenComponents(o.catalogList.Items)
+		o.catalogList = util.FilterHiddenComponents(o.catalogList)
 	}
 
 	if experimental.IsExperimentalModeEnabled() {
@@ -72,7 +77,7 @@ func (o *ListComponentsOptions) Complete(name string, cmd *cobra.Command, args [
 
 // Validate validates the ListComponentsOptions based on completed values
 func (o *ListComponentsOptions) Validate() (err error) {
-	if len(o.catalogList.Items) == 0 && len(o.catalogDevfileList.Items) == 0 {
+	if len(o.catalogList) == 0 && len(o.catalogDevfileList.Items) == 0 {
 		return fmt.Errorf("no deployable components found")
 	}
 
@@ -82,19 +87,33 @@ func (o *ListComponentsOptions) Validate() (err error) {
 // Run contains the logic for the command associated with ListComponentsOptions
 func (o *ListComponentsOptions) Run() (err error) {
 	if log.IsJSON() {
-		for i, image := range o.catalogList.Items {
+		var objects []runtime.RawExtension
+
+		//for i, image := range o.catalogList.Items {
+		for i, image := range o.catalogList {
+
 			// here we don't care about the unsupported tags (second return value)
 			supported, _ := catalog.SliceSupportedTags(image)
-			o.catalogList.Items[i].Spec.SupportedTags = supported
+			o.catalogList[i].Spec.SupportedTags = supported
+			objects = append(objects, runtime.RawExtension{Object: &o.catalogList[i],})
 		}
-		machineoutput.OutputSuccess(o.catalogList)
+
+		list := metav1.List{
+			TypeMeta : metav1.TypeMeta{
+				Kind:       "List",
+				APIVersion: catalog.ApiVersion,
+			},
+			Items: objects,
+		}
+		machineoutput.OutputSuccess(list)
 	} else {
 		w := tabwriter.NewWriter(os.Stdout, 5, 2, 3, ' ', tabwriter.TabIndent)
 		var supCatalogList, unsupCatalogList []catalog.ComponentType
 		var supDevfileCatalogList, unsupDevfileCatalogList []catalog.DevfileComponentType
 		var supported string
 
-		for _, image := range o.catalogList.Items {
+//		for _, image := range o.catalogList.Items {
+		for _, image := range o.catalogList {
 			supported, unsupported := catalog.SliceSupportedTags(image)
 
 			if len(supported) != 0 {

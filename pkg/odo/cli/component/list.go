@@ -88,6 +88,7 @@ func (lo *ListOptions) Run() (err error) {
 			return err
 		}
 		if log.IsJSON() {
+
 			machineoutput.OutputSuccess(components)
 		} else {
 			w := tabwriter.NewWriter(os.Stdout, 5, 2, 3, ' ', tabwriter.TabIndent)

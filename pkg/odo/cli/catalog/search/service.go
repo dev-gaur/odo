@@ -17,7 +17,9 @@ var serviceExample = `  # Search for a service
 // SearchServiceOptions encapsulates the options for the odo catalog describe service command
 type SearchServiceOptions struct {
 	searchTerm string
-	services   catalog.ServiceTypeList
+	//services   catalog.ServiceTypeList
+	services   []catalog.ServiceType
+
 	// generic context options common to all commands
 	*genericclioptions.Context
 }
@@ -43,7 +45,8 @@ func (o *SearchServiceOptions) Complete(name string, cmd *cobra.Command, args []
 
 // Validate validates the SearchServiceOptions based on completed values
 func (o *SearchServiceOptions) Validate() (err error) {
-	if len(o.services.Items) == 0 {
+	//if len(o.services.Items) == 0 {
+	if len(o.services) == 0 {
 		return fmt.Errorf("no service matched the query: %s", o.searchTerm)
 	}
 

@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	apiVersion = "odo.dev/v1alpha1"
+	ApiVersion = "odo.dev/v1alpha1"
 )
 
 // DevfileRegistries contains the links of all devfile registries
@@ -198,24 +198,28 @@ func ListDevfileComponents(registryName string) (DevfileComponentTypeList, error
 }
 
 // ListComponents lists all the available component types
-func ListComponents(client *occlient.Client) (ComponentTypeList, error) {
+func ListComponents(client *occlient.Client) ([]ComponentType, error) {
 
 	catalogList, err := getDefaultBuilderImages(client)
 	if err != nil {
-		return ComponentTypeList{}, errors.Wrap(err, "unable to get image streams")
+		//return ComponentTypeList{}, errors.Wrap(err, "unable to get image streams")
+		return nil, errors.Wrap(err, "unable to get image streams")
 	}
 
 	if len(catalogList) == 0 {
-		return ComponentTypeList{}, errors.New("unable to retrieve any catalog images from the OpenShift cluster")
+//		return ComponentTypeList{}, errors.New("unable to retrieve any catalog images from the OpenShift cluster")
+		return nil, errors.New("unable to retrieve any catalog images from the OpenShift cluster")
 	}
 
-	return ComponentTypeList{
+	/*return ComponentTypeList{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "List",
-			APIVersion: apiVersion,
+			APIVersion: ApiVersion,
 		},
 		Items: catalogList,
-	}, nil
+
+	}, nil*/
+	return catalogList, nil
 }
 
 // SearchComponent searches for the component
@@ -227,7 +231,7 @@ func SearchComponent(client *occlient.Client, name string) ([]string, error) {
 	}
 
 	// do a partial search in all the components
-	for _, component := range componentList.Items {
+	for _, component := range componentList {
 		// we only show components that contain the search term and that have at least non-hidden tag
 		// since a component with all hidden tags is not shown in the odo catalog list components either
 		if strings.Contains(component.ObjectMeta.Name, name) && len(component.Spec.NonHiddenTags) > 0 {
@@ -251,11 +255,10 @@ func ComponentExists(client *occlient.Client, componentType string, componentVer
 }
 
 // ListServices lists all the available service types
-func ListServices(client *occlient.Client) (ServiceTypeList, error) {
-
+func ListServices(client *occlient.Client) ([]ServiceType, error) {
 	clusterServiceClasses, err := getClusterCatalogServices(client)
 	if err != nil {
-		return ServiceTypeList{}, errors.Wrapf(err, "unable to get cluster serviceClassExternalName")
+		return nil, errors.Wrapf(err, "unable to get cluster serviceClassExternalName")
 	}
 
 	// Sorting service classes alphabetically
@@ -263,38 +266,60 @@ func ListServices(client *occlient.Client) (ServiceTypeList, error) {
 	sort.Slice(clusterServiceClasses, func(i, j int) bool {
 		return clusterServiceClasses[i].Name < clusterServiceClasses[j].Name
 	})
-
+	/*
+	return metav1.List{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "List",
+			APIVersion: ApiVersion,
+		},
+		Items: clusterServiceClasses,
+	}, nil*/
+	/*
 	return ServiceTypeList{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "List",
-			APIVersion: apiVersion,
+			APIVersion: ApiVersion,
 		},
 		Items: clusterServiceClasses,
-	}, nil
+	}, nil*/
+	return clusterServiceClasses, nil
 }
 
 // SearchService searches for the services
-func SearchService(client *occlient.Client, name string) (ServiceTypeList, error) {
+func SearchService(client *occlient.Client, name string) ([]ServiceType/*List*/, error) {
 	var result []ServiceType
 	serviceList, err := ListServices(client)
 	if err != nil {
-		return ServiceTypeList{}, errors.Wrap(err, "unable to list services")
+//		return ServiceTypeList{}, errors.Wrap(err, "unable to list services")
+		return nil, errors.Wrap(err, "unable to list services")
+
 	}
 
 	// do a partial search in all the services
-	for _, service := range serviceList.Items {
+	for _, service := range serviceList {
 		if strings.Contains(service.ObjectMeta.Name, name) {
 			result = append(result, service)
 		}
 	}
 
-	return ServiceTypeList{
+	return result, nil
+/*
+	return metav1.List{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "List",
-			APIVersion: apiVersion,
+			APIVersion: ApiVersion,
 		},
 		Items: result,
 	}, nil
+*/
+	/*
+	return ServiceTypeList{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "List",
+			APIVersion: ApiVersion,
+		},
+		Items: result,
+	}, nil*/
 }
 
 // getClusterCatalogServices returns the names of all the cluster service
@@ -322,7 +347,7 @@ func getClusterCatalogServices(client *occlient.Client) ([]ServiceType, error) {
 		classNames = append(classNames, ServiceType{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "ServiceType",
-				APIVersion: apiVersion,
+				APIVersion: ApiVersion,
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: class.Spec.ExternalName,
@@ -333,6 +358,7 @@ func getClusterCatalogServices(client *occlient.Client) ([]ServiceType, error) {
 			},
 		})
 	}
+
 	return classNames, nil
 }
 
@@ -547,7 +573,7 @@ func getBuildersFromImageStreams(imageStreams []imagev1.ImageStream, imageStream
 			catalogImage := ComponentType{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "ComponentType",
-					APIVersion: apiVersion,
+					APIVersion: ApiVersion,
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      imageStream.Name,

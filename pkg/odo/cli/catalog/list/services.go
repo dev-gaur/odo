@@ -2,7 +2,6 @@ package list
 
 import (
 	"fmt"
-
 	"github.com/openshift/odo/pkg/catalog"
 	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/machineoutput"
@@ -21,7 +20,7 @@ var servicesExample = `  # Get the supported services from service catalog
 // ListServicesOptions encapsulates the options for the odo catalog list services command
 type ListServicesOptions struct {
 	// list of known services
-	services catalog.ServiceTypeList
+	services []catalog.ServiceType
 	// list of clusterserviceversions (installed by Operators)
 	csvs *olm.ClusterServiceVersionList
 	// generic context options common to all commands
@@ -57,6 +56,14 @@ func (o *ListServicesOptions) Complete(name string, cmd *cobra.Command, args []s
 				err = nil
 			}
 		}
+/*
+		o.services = ServiceTypeList{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "List",
+				APIVersion: apiVersion,
+			},
+			Items: service,
+		}*/
 
 		if noCsvs && noServices {
 			// Neither OperatorHub nor Service Catalog is enabled on the cluster
@@ -68,7 +75,6 @@ func (o *ListServicesOptions) Complete(name string, cmd *cobra.Command, args []s
 		o.services, err = catalog.ListServices(o.Client)
 		if err != nil {
 			return fmt.Errorf("unable to list services because Service Catalog is not enabled in your cluster: %v", err)
-
 		}
 		o.services = util.FilterHiddenServices(o.services)
 	}
@@ -79,11 +85,11 @@ func (o *ListServicesOptions) Complete(name string, cmd *cobra.Command, args []s
 // Validate validates the ListServicesOptions based on completed values
 func (o *ListServicesOptions) Validate() (err error) {
 	if experimental.IsExperimentalModeEnabled() {
-		if len(o.services.Items) == 0 && len(o.csvs.Items) == 0 {
+		if len(o.services) == 0 && len(o.csvs.Items) == 0 {
 			return fmt.Errorf("no deployable services/operators found")
 		}
 	} else {
-		if len(o.services.Items) == 0 {
+		if len(o.services) == 0 {
 			return fmt.Errorf("no deployable services found")
 		}
 	}
@@ -100,7 +106,7 @@ func (o *ListServicesOptions) Run() (err error) {
 				util.DisplayClusterServiceVersions(o.csvs)
 			}
 		}
-		if len(o.services.Items) > 0 {
+		if len(o.services) > 0 {
 			util.DisplayServices(o.services)
 		}
 	}

@@ -132,14 +132,14 @@ func TestListComponents(t *testing.T) {
 
 			// Check if the output is the same as what's expected (for all tags)
 			// and only if output is more than 0 (something is actually returned)
-			if len(output.Items) > 0 && !(reflect.DeepEqual(output.Items[0].Spec.AllTags, tt.wantAllTags)) {
-				t.Errorf("expected all tags: %s, got: %s", tt.wantAllTags, output.Items[0].Spec.AllTags)
+			if len(output) > 0 && !(reflect.DeepEqual(output[0].Spec.AllTags, tt.wantAllTags)) {
+				t.Errorf("expected all tags: %s, got: %s", tt.wantAllTags, output[0].Spec.AllTags)
 			}
 
 			// Check if the output is the same as what's expected (for hidden tags)
 			// and only if output is more than 0 (something is actually returned)
-			if len(output.Items) > 0 && !(reflect.DeepEqual(output.Items[0].Spec.NonHiddenTags, tt.wantNonHiddenTags)) {
-				t.Errorf("expected non hidden tags: %s, got: %s", tt.wantNonHiddenTags, output.Items[0].Spec.NonHiddenTags)
+			if len(output) > 0 && !(reflect.DeepEqual(output[0].Spec.NonHiddenTags, tt.wantNonHiddenTags)) {
+				t.Errorf("expected non hidden tags: %s, got: %s", tt.wantNonHiddenTags, output[0].Spec.NonHiddenTags)
 			}
 
 		})
@@ -311,7 +311,7 @@ func TestGetDevfile(t *testing.T) {
 		// Note: Yaml file uses indentation to represent relationships between data layers,
 		// so we need to use the following Yaml format to obey the rule
 		_, err := rw.Write([]byte(
-			`apiVersion: 1.0.0
+			`ApiVersion: 1.0.0
 metadata:
   generateName: angular-
   projects:
