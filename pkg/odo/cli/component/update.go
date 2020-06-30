@@ -17,6 +17,8 @@ import (
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 	odoutil "github.com/openshift/odo/pkg/odo/util"
 	"github.com/openshift/odo/pkg/odo/util/completion"
+	"github.com/openshift/odo/pkg/odo/util/experimental"
+	"github.com/openshift/odo/pkg/util"
 
 	ktemplates "k8s.io/kubectl/pkg/util/templates"
 )
@@ -32,6 +34,9 @@ type UpdateOptions struct {
 	ref    string
 
 	*CommonPushOptions
+
+	// devfile path
+	devfilePath string
 }
 
 var updateCmdExample = ktemplates.Examples(`  # Change the source code path of currently active component to local with source in ./frontend directory
@@ -43,6 +48,14 @@ var updateCmdExample = ktemplates.Examples(`  # Change the source code path of c
 	  # Change the source code path of of currently active component to a binary named sample.war in ./downloads directory
 	  %[1]s --binary ./downloads/sample.war
 		`)
+
+const deprecationWarning string = "WARNING: 'odo update' command will be removed in the future odo version.\n" +
+	"You should be using `odo config` command instead.\n" +
+	"example:\n" +
+	"  odo config set SourceType git\n" +
+	"  odo config set SourceLocation https://github.com/example/example"
+
+const devfileErrorString string = "'odo update' command is not available for Devfile based components."
 
 // NewUpdateOptions returns new instance of UpdateOptions
 func NewUpdateOptions() *UpdateOptions {
@@ -57,6 +70,18 @@ func NewUpdateOptions() *UpdateOptions {
 
 // Complete completes update args
 func (uo *UpdateOptions) Complete(name string, cmd *cobra.Command, args []string) (err error) {
+	uo.devfilePath = filepath.Join(uo.componentContext, DevfilePath)
+
+	if experimental.IsExperimentalModeEnabled() && util.CheckPathExists(uo.devfilePath) {
+		// Add a disclaimer that we are in *experimental mode*
+		log.Experimental("Experimental mode is enabled, use at your own risk")
+
+		// Configure the context
+		if uo.componentContext != "" {
+			uo.Context = genericclioptions.NewDevfileContext(cmd)
+			return
+		}
+	}
 	uo.Context = genericclioptions.NewContext(cmd)
 	uo.LocalConfigInfo, err = config.NewLocalConfigInfo(uo.componentContext)
 	if err != nil {
@@ -68,6 +93,11 @@ func (uo *UpdateOptions) Complete(name string, cmd *cobra.Command, args []string
 
 // Validate validates the update parameters
 func (uo *UpdateOptions) Validate() (err error) {
+
+	// if experimental mode is enabled and devfile is present
+	if experimental.IsExperimentalModeEnabled() && util.CheckPathExists(uo.devfilePath) {
+		return nil
+	}
 
 	uo.doesComponentExist, err = component.Exists(uo.Context.Client, uo.LocalConfigInfo.GetName(), uo.LocalConfigInfo.GetApplication())
 	if err != nil {
@@ -136,6 +166,13 @@ func (uo *UpdateOptions) Validate() (err error) {
 
 // Run has the logic to perform the required actions as part of command
 func (uo *UpdateOptions) Run() (err error) {
+
+	// if experimental mode is enabled and devfile is present
+	if experimental.IsExperimentalModeEnabled() && util.CheckPathExists(uo.devfilePath) && uo.doesComponentExist {
+		return errors.New(devfileErrorString)
+	}
+
+	log.Warning(deprecationWarning)
 
 	compSettings := uo.LocalConfigInfo.GetComponentSettings()
 	compSettings.SourceLocation = &uo.sourcePath
